@@ -1,0 +1,27 @@
+# deps
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+
+# expo
+app/.expo/
+app/dist/
+app/web-build/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# env & local
+.env
+.env.*
+!.env.example
+*.db
+secondbrain.db
+
+# build artifacts
+backend/.pytest_cache/
+.ruff_cache/
+.DS_Store
