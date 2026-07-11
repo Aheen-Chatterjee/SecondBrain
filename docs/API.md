@@ -73,7 +73,7 @@ interface Highlight {
 ## Health
 
 `GET /health` (no auth, no `/api` prefix) → `{ "status": "ok", "ai": true|false }`
-(`ai` = whether an Anthropic key is configured).
+(`ai` = whether an OpenRouter key is configured).
 
 ## Profile
 
@@ -259,8 +259,8 @@ Endpoints:
 
 ## AI degradation rules
 
-Backend AI features call the Anthropic API (`ANTHROPIC_API_KEY`). When the key
-is missing, endpoints MUST still succeed with deterministic fallbacks:
+Backend AI features call DeepSeek via OpenRouter (`OPENROUTER_API_KEY`). When
+the key is missing, endpoints MUST still succeed with deterministic fallbacks:
 summaries = first ~2 sentences of content; book reflection split = split on
 sentence/paragraph boundaries; journal chat reply = fixed reflective prompt
 ("What felt most alive about today?"); tags = simple keyword extraction;
@@ -274,8 +274,10 @@ show a subtle "AI offline" hint.
 | `DATABASE_URL` | yes* | Postgres (Supabase) SQLAlchemy URL. *Defaults to local SQLite `sqlite+aiosqlite:///./secondbrain.db` for dev. |
 | `SUPABASE_JWT_SECRET` | prod | verify Supabase JWTs |
 | `AUTH_DEV_MODE` | no | `true` accepts token `dev` |
-| `ANTHROPIC_API_KEY` | no | enables real AI |
-| `ANTHROPIC_MODEL` | no | default `claude-sonnet-5` |
+| `OPENROUTER_API_KEY` | no | enables real AI (OpenRouter) |
+| `OPENROUTER_MODEL` | no | default `deepseek/deepseek-chat-v3.1` |
+| `OPENROUTER_VISION_MODEL` | no | vision model for photo OCR (DeepSeek is text-only); default `qwen/qwen2.5-vl-72b-instruct` |
+| `OPENROUTER_BASE_URL` | no | default `https://openrouter.ai/api/v1` |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` | no | storage uploads (book photos) |
 | `YOUTUBE_API_KEY` | no | playlist sync |
 | `CORS_ORIGINS` | no | default `*` |

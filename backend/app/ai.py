@@ -1,9 +1,13 @@
-"""Thin, typed wrapper around the Anthropic API.
+"""Thin, typed wrapper around OpenRouter (DeepSeek by default).
 
-Every public function here is designed to NEVER raise: if `ANTHROPIC_API_KEY`
+Uses OpenRouter's OpenAI-compatible chat-completions API via httpx.
+Every public function here is designed to NEVER raise: if `OPENROUTER_API_KEY`
 is unset, or any call to the API fails for any reason, we fall back to a
 deterministic, non-AI implementation so the surrounding endpoint still
 succeeds (see docs/API.md "AI degradation rules").
+
+Text tasks use `OPENROUTER_MODEL` (default DeepSeek). Photo OCR needs a
+vision-capable model, configured separately as `OPENROUTER_VISION_MODEL`.
 """
 
 from __future__ import annotations
@@ -11,6 +15,8 @@ from __future__ import annotations
 import base64
 import re
 from collections import Counter
+
+import httpx
 
 from app.config import get_settings
 
@@ -26,39 +32,42 @@ _STOPWORDS = {
 }
 
 
-def _client():
-    """Return an AsyncAnthropic client, or None if no key configured."""
+async def _chat(
+    system: str,
+    messages: list[dict],
+    max_tokens: int = 512,
+    model: str | None = None,
+) -> str | None:
+    """OpenRouter chat completion. Returns the reply text, or None on any failure."""
     settings = get_settings()
     if not settings.ai_configured:
         return None
     try:
-        import anthropic
-
-        return anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
+        async with httpx.AsyncClient(timeout=60) as client:
+            resp = await client.post(
+                f"{settings.OPENROUTER_BASE_URL.rstrip('/')}/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
+                    "X-Title": "Second Brain",
+                },
+                json={
+                    "model": model or settings.OPENROUTER_MODEL,
+                    "max_tokens": max_tokens,
+                    "messages": [{"role": "system", "content": system}, *messages],
+                },
+            )
+            resp.raise_for_status()
+            content = resp.json()["choices"][0]["message"]["content"]
+            if isinstance(content, str):
+                return content.strip() or None
+            return None
     except Exception:
         return None
-
-
-def _model() -> str:
-    return get_settings().ANTHROPIC_MODEL
 
 
 async def _complete(system: str, user: str, max_tokens: int = 512) -> str | None:
     """Single-turn text completion. Returns None on any failure."""
-    client = _client()
-    if client is None:
-        return None
-    try:
-        resp = await client.messages.create(
-            model=_model(),
-            max_tokens=max_tokens,
-            system=system,
-            messages=[{"role": "user", "content": user}],
-        )
-        parts = [b.text for b in resp.content if getattr(b, "type", None) == "text"]
-        return "\n".join(parts).strip() or None
-    except Exception:
-        return None
+    return await _chat(system, [{"role": "user", "content": user}], max_tokens)
 
 
 # ---------------------------------------------------------------------------
@@ -186,8 +195,7 @@ async def journal_chat(
     context_items: list[str],
 ) -> tuple[str, list[dict]]:
     """Returns (reply_text, suggestions). suggestions are plain dicts matching Suggestion shape."""
-    client = _client()
-    if client is None:
+    if not get_settings().ai_configured:
         return _FALLBACK_CHAT_PROMPT, []
 
     tone_desc = {
@@ -216,20 +224,10 @@ async def journal_chat(
     if not messages:
         messages.append({"role": "user", "content": f"Here is today's journal entry:\n\n{entry}"})
 
-    try:
-        resp = await client.messages.create(
-            model=_model(),
-            max_tokens=400,
-            system=system,
-            messages=messages,
-        )
-        parts = [b.text for b in resp.content if getattr(b, "type", None) == "text"]
-        reply = "\n".join(parts).strip()
-        if not reply:
-            return _FALLBACK_CHAT_PROMPT, []
-        return reply, []
-    except Exception:
+    reply = await _chat(system, messages, max_tokens=400)
+    if not reply:
         return _FALLBACK_CHAT_PROMPT, []
+    return reply, []
 
 
 async def distill(content: str) -> list[str]:
@@ -253,43 +251,43 @@ async def distill(content: str) -> list[str]:
 
 
 async def extract_page_text(image_bytes: bytes, media_type: str = "image/jpeg") -> str:
-    """OCR + cleanup a photographed book page via Claude vision. Empty string on failure."""
-    client = _client()
-    if client is None or not image_bytes:
+    """OCR + cleanup a photographed book page via a vision model on OpenRouter.
+
+    DeepSeek is text-only, so this uses OPENROUTER_VISION_MODEL instead of the
+    default chat model. Empty string on any failure.
+    """
+    settings = get_settings()
+    if not settings.ai_configured or not settings.OPENROUTER_VISION_MODEL or not image_bytes:
         return ""
-    try:
-        b64 = base64.b64encode(image_bytes).decode("ascii")
-        resp = await client.messages.create(
-            model=_model(),
-            max_tokens=500,
-            system=(
-                "You transcribe photographed book pages. Read the image, clean up OCR noise, "
-                "and respond with ONLY the cleaned key passage/idea from the page (a few "
-                "sentences), no commentary."
-            ),
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "image",
-                            "source": {"type": "base64", "media_type": media_type, "data": b64},
-                        },
-                        {"type": "text", "text": "Transcribe and clean up the key passage on this page."},
-                    ],
-                }
-            ],
-        )
-        parts = [b.text for b in resp.content if getattr(b, "type", None) == "text"]
-        return "\n".join(parts).strip()
-    except Exception:
-        return ""
+    b64 = base64.b64encode(image_bytes).decode("ascii")
+    result = await _chat(
+        "You transcribe photographed book pages. Read the image, clean up OCR noise, "
+        "and respond with ONLY the cleaned key passage/idea from the page (a few "
+        "sentences), no commentary.",
+        [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:{media_type};base64,{b64}"},
+                    },
+                    {
+                        "type": "text",
+                        "text": "Transcribe and clean up the key passage on this page.",
+                    },
+                ],
+            }
+        ],
+        max_tokens=500,
+        model=settings.OPENROUTER_VISION_MODEL,
+    )
+    return result or ""
 
 
 async def suggest_widgets(recent_entries: list[str]) -> list[dict]:
     """Returns proposals: list of {widget_type, title, config, reason}. Empty list on failure/no key."""
-    client = _client()
-    if client is None or not recent_entries:
+    if not get_settings().ai_configured or not recent_entries:
         return []
     joined = "\n---\n".join(recent_entries[-10:])
     result = await _complete(
@@ -330,8 +328,7 @@ async def suggest_widgets(recent_entries: list[str]) -> list[dict]:
 
 
 async def dashboard_insight(data: dict) -> str | None:
-    client = _client()
-    if client is None:
+    if not get_settings().ai_configured:
         return None
     import json
 

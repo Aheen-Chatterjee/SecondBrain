@@ -1,7 +1,7 @@
 # Setup
 
 Two ways to run: **dev mode** (zero config, everything local, AI stubbed) and
-**full mode** (Supabase + Anthropic + optional YouTube/push).
+**full mode** (Supabase + OpenRouter + optional YouTube/push).
 
 ---
 
@@ -62,8 +62,10 @@ DATABASE_URL=postgresql+asyncpg://postgres:<password>@<host>:5432/postgres
 SUPABASE_JWT_SECRET=<jwt secret>
 SUPABASE_URL=https://<project>.supabase.co
 SUPABASE_SERVICE_KEY=<service_role key>
-ANTHROPIC_API_KEY=<key from console.anthropic.com>   # enables real AI
-# ANTHROPIC_MODEL=claude-sonnet-5                    # optional override
+OPENROUTER_API_KEY=<key from openrouter.ai/keys>     # enables real AI (DeepSeek)
+# OPENROUTER_MODEL=deepseek/deepseek-chat-v3.1       # optional override
+# OPENROUTER_VISION_MODEL=qwen/qwen2.5-vl-72b-instruct  # used for snap-a-page OCR
+#   (DeepSeek is text-only, so OCR routes to this vision-capable model)
 # YOUTUBE_API_KEY=<Google Cloud key with YouTube Data API v3>  # playlist sync
 # CORS_ORIGINS=*
 AUTH_DEV_MODE=false
@@ -115,7 +117,7 @@ Any Python host works (Fly.io, Railway, Render):
 ## Known manual-work list (deferred by design)
 
 - Creating the Supabase project + running the migration (a, above)
-- Anthropic API key for real AI (b)
+- OpenRouter API key for real AI (b)
 - YouTube API key (e)
 - Scheduling the two cron endpoints (d, e)
 - EAS/store builds and push-notification credentials (g)

@@ -38,7 +38,7 @@ curl -H "Authorization: Bearer dev" http://localhost:8000/api/profile
 ```
 
 Tests run against a temp SQLite DB with `AUTH_DEV_MODE=true` and no
-`ANTHROPIC_API_KEY`, exercising the deterministic AI fallbacks end-to-end.
+`OPENROUTER_API_KEY`, exercising the deterministic AI fallbacks end-to-end.
 
 ## Structure
 
@@ -50,7 +50,7 @@ app/
   models.py        SQLAlchemy ORM models (mirrors supabase/migrations/0001_init.sql)
   schemas.py       Pydantic request/response models
   auth.py          Supabase JWT verification + AUTH_DEV_MODE
-  ai.py            Anthropic wrapper with deterministic fallbacks
+  ai.py            OpenRouter (DeepSeek) wrapper with deterministic fallbacks
   services/        enrichment, ocr, spaced_repetition, feed, widgets, storage, youtube
   routers/         profile, journal, capture, items, wisdom, tracker, integrations, notifications
 tests/             pytest suite (httpx.AsyncClient + ASGITransport)

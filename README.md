@@ -17,7 +17,7 @@ and track your life on a dashboard the AI can extend.
 
 ```
 app/       Expo React Native app (expo-router, TypeScript)
-backend/   FastAPI backend (SQLAlchemy async, Anthropic AI, spaced repetition)
+backend/   FastAPI backend (SQLAlchemy async, DeepSeek via OpenRouter, spaced repetition)
 supabase/  SQL migrations (Postgres + pgvector + RLS)
 docs/      API contract (docs/API.md) and theme spec (docs/THEME.md)
 PRD.md     Product requirements
@@ -41,5 +41,5 @@ npx expo start
 ```
 
 Open the app, tap **Continue in dev mode**. See `SETUP.md` to connect the real
-things: Supabase, an Anthropic key (real AI), YouTube sync, and push
+things: Supabase, an OpenRouter key (real AI via DeepSeek), YouTube sync, and push
 notifications.

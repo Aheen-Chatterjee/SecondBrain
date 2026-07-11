@@ -7,7 +7,7 @@ import uuid
 _TMP_DB = os.path.join(tempfile.gettempdir(), f"secondbrain_test_{uuid.uuid4().hex}.db")
 os.environ["DATABASE_URL"] = f"sqlite+aiosqlite:///{_TMP_DB}"
 os.environ["AUTH_DEV_MODE"] = "true"
-os.environ.pop("ANTHROPIC_API_KEY", None)
+os.environ.pop("OPENROUTER_API_KEY", None)
 os.environ["SUPABASE_JWT_SECRET"] = ""
 os.environ["SUPABASE_URL"] = ""
 os.environ["SUPABASE_SERVICE_KEY"] = ""

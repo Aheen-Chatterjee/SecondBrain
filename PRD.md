@@ -235,9 +235,11 @@ journaling and captures.
   and to avoid fabrication.
 
 ### 6.3 Model strategy
-- Default to the latest and most capable Claude models for chat, summarization,
-  and tool-calling; use a smaller/faster Claude model for high-volume tagging and
-  embeddings-adjacent classification to control cost.
+- All AI goes through **OpenRouter**, with **DeepSeek** as the default model for
+  chat, summarization, tagging, and structured outputs (strong quality at low
+  cost). Model choice is a config value, so it can be swapped per-task later.
+- DeepSeek is text-only, so photo OCR (snap-a-page) routes to a configurable
+  vision-capable model on OpenRouter (default Qwen2.5-VL).
 - All prompts include user-configurable tone and are constrained by system prompts
   that enforce privacy and grounding.
 
@@ -263,7 +265,7 @@ journaling and captures.
 └────────────────────┘     │  - embeddings       │              ▲
                            └─────────┬───────────┘              │
                                      │  ┌────────────────────┐  │
-                                     └─►│ LLM API (Claude)   │  │
+                                     └─►│ OpenRouter (DeepSeek)│  │
                                         │ YouTube API        │  │
                                         │ OCR (book photos)  │──┘
                                         └────────────────────┘
@@ -289,7 +291,7 @@ journaling and captures.
 - **Row Level Security** on every table keyed by `user_id`.
 
 ### 7.5 Third-party integrations
-- **LLM:** Claude API.
+- **LLM:** DeepSeek via OpenRouter (text); Qwen2.5-VL via OpenRouter (photo OCR).
 - **YouTube Data API** (playlist items, video metadata; transcripts via available API).
 - **Books:** no Kindle/Readwise integration — manual "I read this" logging plus
   photo capture with **OCR** (on-device text recognition or a cloud OCR/vision call).

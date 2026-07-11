@@ -17,7 +17,7 @@ async def test_health(client):
     assert resp.status_code == 200
     body = resp.json()
     assert body["status"] == "ok"
-    assert body["ai"] is False  # no ANTHROPIC_API_KEY in test env
+    assert body["ai"] is False  # no OPENROUTER_API_KEY in test env
 
 
 # ---------------------------------------------------------------------------

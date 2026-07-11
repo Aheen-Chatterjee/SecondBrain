@@ -9,8 +9,11 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite+aiosqlite:///./secondbrain.db"
     SUPABASE_JWT_SECRET: str = ""
     AUTH_DEV_MODE: bool = False
-    ANTHROPIC_API_KEY: str = ""
-    ANTHROPIC_MODEL: str = "claude-sonnet-5"
+    OPENROUTER_API_KEY: str = ""
+    OPENROUTER_MODEL: str = "deepseek/deepseek-chat-v3.1"
+    # DeepSeek is text-only; snap-a-page OCR uses this vision-capable model.
+    OPENROUTER_VISION_MODEL: str = "qwen/qwen2.5-vl-72b-instruct"
+    OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
     SUPABASE_URL: str = ""
     SUPABASE_SERVICE_KEY: str = ""
     YOUTUBE_API_KEY: str = ""
@@ -24,7 +27,7 @@ class Settings(BaseSettings):
 
     @property
     def ai_configured(self) -> bool:
-        return bool(self.ANTHROPIC_API_KEY.strip())
+        return bool(self.OPENROUTER_API_KEY.strip())
 
 
 @lru_cache
