@@ -7,6 +7,7 @@ import React, {
   useState,
 } from 'react';
 import { DEV_TOKEN_KEY } from './api';
+import { registerPushToken } from './notifications';
 import { supabase, supabaseConfigured } from './supabase';
 
 type AuthStatus = 'loading' | 'signedOut' | 'signedIn';
@@ -52,6 +53,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       sub?.data.subscription.unsubscribe();
     };
   }, []);
+
+  // Register the Expo push token once per session (best-effort, non-blocking).
+  useEffect(() => {
+    if (status === 'signedIn') void registerPushToken();
+  }, [status]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
