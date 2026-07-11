@@ -1,0 +1,46 @@
+{
+  "expo": {
+    "name": "Second Brain",
+    "slug": "secondbrain",
+    "scheme": "secondbrain",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FAF9F5"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.secondbrain.app"
+    },
+    "android": {
+      "package": "com.secondbrain.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#FAF9F5",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Second Brain to access your photos to capture book pages.",
+          "cameraPermission": "Allow Second Brain to use the camera to snap book pages."
+        }
+      ]
+    ]
+  }
+}
