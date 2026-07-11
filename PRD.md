@@ -11,7 +11,7 @@
 
 ### 1.1 Vision
 A personal, AI-powered "second brain" that continuously ingests the knowledge you
-encounter — Kindle highlights, links you share, YouTube playlist additions — and
+encounter — book highlights, links you share, YouTube playlist additions — and
 combines it with what you write yourself through daily journaling. It doesn't just
 store this material; it helps you **review, connect, and remember** the wisdom you
 gather, and reflects your whole life back to you through a dynamic, AI-curated
@@ -26,7 +26,7 @@ and watch) and *internal outputs* (what you think and feel) live together and ar
 actively resurfaced.
 
 ### 1.3 Product pillars
-1. **Capture everywhere** — frictionless ingestion from Kindle, share sheets, and YouTube.
+1. **Capture everywhere** — frictionless ingestion from books (snap/log), share sheets, and YouTube.
 2. **Reflect daily** — a journaling habit with an AI conversation partner.
 3. **Remember actively** — a knowledge hub with spaced resurfacing ("wisdom notifications").
 4. **See your whole life** — a dynamic dashboard the AI can extend with widgets.
@@ -43,7 +43,7 @@ actively resurfaced.
 
 ### 2.1 Goals (v1)
 - Daily journaling with an end-of-entry AI chat.
-- Automated ingestion of Kindle highlights, shared links, and YouTube playlist items.
+- Ingestion of book highlights (manual log + photo/OCR), shared links, and YouTube playlist items.
 - A unified, searchable knowledge hub across all sources.
 - Spaced-repetition-style "wisdom notifications."
 - A dynamic dashboard where the AI can add/remove tracking widgets.
@@ -61,7 +61,7 @@ actively resurfaced.
 ## 3. Target User & Personas
 
 **Primary persona — "The Lifelong Learner"**
-Reads on Kindle, saves articles and videos constantly, journals sporadically, and
+Reads books, saves articles and videos constantly, journals sporadically, and
 feels frustrated that they retain very little. Wants a system that does the
 remembering for them and nudges reflection.
 
@@ -123,11 +123,18 @@ quotes), mood tagging, and inline references to knowledge items.
 - `CP-6` De-duplication (same URL captured twice merges).
 - `CP-7` Capture works offline and syncs when back online.
 
-**Automated source integrations**
-- `CP-8` **Kindle highlights** — sync highlights + notes per book.
-  - v1 approach: user-triggered import via emailed Kindle "My Clippings"/export or
-    Readwise-style parsing; store book, highlight text, location, note, timestamp.
-  - Later: automated periodic sync.
+**Book capture (in lieu of a Kindle/Readwise integration)**
+- `CP-8` **Books are captured manually — no Kindle sync or Readwise account
+  required.** Two lightweight paths:
+  - **(a) "I read this" quick log:** user names a book (title/author, cover
+    auto-fetched) and writes what they liked / what stuck with them in free text.
+    The AI splits this into discrete highlight/takeaway cards for the wisdom feed.
+  - **(b) Snap a page:** user photographs a book page (or a highlighted passage);
+    **on-device or backend OCR** extracts the text, the AI cleans it up and pulls
+    the key idea, and it becomes a highlight card. The original photo is kept and
+    viewable on the card.
+  - Both create a `book` knowledge item with child `highlights`; multiple
+    logs/photos accrue under the same book.
 - `CP-9` **YouTube playlist sync** — connect a YouTube account (or watch specific
   playlists via API). New videos added to a chosen playlist auto-import with title,
   channel, transcript (when available), and AI summary.
@@ -139,10 +146,22 @@ quotes), mood tagging, and inline references to knowledge items.
 plus insights extracted from journaling, made **reviewable and memorable**.
 
 **Requirements**
-- `WS-1` Unified feed/grid of all knowledge items across sources, filterable by
-  source, type, tag, and date.
-- `WS-2` Item detail view: full content/summary, highlights, your notes,
-  AI-generated key takeaways, and related items.
+- `WS-1` **TikTok-style vertical feed:** the primary browse experience is a
+  full-screen, vertically swipeable stack of **wisdom cards** — one item per screen,
+  snap-scrolling top-to-bottom. Each card renders a single, digestible unit of
+  wisdom (a highlight, an AI takeaway, a quote, a video clip, or a distilled
+  principle), not a dense list row. This makes reviewing feel effortless and
+  addictive rather than like homework.
+  - Card content adapts to type: book highlight/takeaway, article summary point,
+    YouTube thumbnail + key idea, or a photographed book page.
+  - Per-card actions (thumb-reachable, overlaid): save/favorite, "still resonates,"
+    distill, open detail, start a related journal prompt, share.
+  - Feed ordering is a mix of newest captures, spaced-repetition-due items, and
+    AI-surfaced connections (serendipity) — tunable via filters.
+  - Filters/search still available (source, type, tag, date) but collapse away so
+    the feed stays immersive.
+- `WS-2` Item detail view (tap a card): full content/summary, highlights, your
+  notes, AI-generated key takeaways, and related items.
 - `WS-3` **Semantic search** across all sources (vector search over embeddings).
 - `WS-4` **AI connections:** for any item, surface related highlights, videos,
   journal entries, and notes ("This connects to…").
@@ -246,7 +265,7 @@ journaling and captures.
                                      │  ┌────────────────────┐  │
                                      └─►│ LLM API (Claude)   │  │
                                         │ YouTube API        │  │
-                                        │ Kindle/Readwise    │──┘
+                                        │ OCR (book photos)  │──┘
                                         └────────────────────┘
 ```
 
@@ -260,7 +279,7 @@ journaling and captures.
 ### 7.3 Backend (FastAPI)
 - REST API for app clients; handles all LLM calls (keys never on device).
 - Background workers (e.g., Celery/RQ or Supabase Edge Functions + cron) for:
-  enrichment, embeddings, YouTube polling, Kindle imports, notification scheduling.
+  enrichment, embeddings, YouTube polling, book-photo OCR, notification scheduling.
 - Auth via Supabase JWT verification.
 
 ### 7.4 Data & storage (Supabase)
@@ -272,7 +291,8 @@ journaling and captures.
 ### 7.5 Third-party integrations
 - **LLM:** Claude API.
 - **YouTube Data API** (playlist items, video metadata; transcripts via available API).
-- **Kindle:** v1 via user export / Readwise-style parsing; evaluate Readwise API.
+- **Books:** no Kindle/Readwise integration — manual "I read this" logging plus
+  photo capture with **OCR** (on-device text recognition or a cloud OCR/vision call).
 - **Push:** Expo Push Notifications.
 
 ---
@@ -293,12 +313,14 @@ journal_chats
   id, entry_id, role (user|assistant), content, created_at
 
 knowledge_items
-  id, user_id, source (kindle|youtube|link|note|voice),
+  id, user_id, source (book|youtube|link|note|voice),
   type (article|video|book|tweet|pdf|note), title, author, url,
   thumbnail, raw_content, summary, reading_time, captured_at, dedup_key
 
 highlights
-  id, knowledge_item_id, user_id, text, note, location, highlighted_at
+  id, knowledge_item_id, user_id, text, note, location,
+  photo_url (nullable, for snapped book pages), source_kind (log|photo),
+  highlighted_at
 
 tags
   id, user_id, name
@@ -323,7 +345,7 @@ widget_data
   id, widget_id, user_id, ts, value jsonb   -- for manual/derived metrics
 
 integrations
-  id, user_id, provider (youtube|kindle|readwise), status, tokens (encrypted),
+  id, user_id, provider (youtube), status, tokens (encrypted),
   last_synced_at, config jsonb
 
 notifications_log
@@ -342,8 +364,11 @@ notifications_log
    detail with "still resonates?" feedback → reschedules interval.
 4. **AI adds a widget:** Journal chat detects a recurring habit → proposes a tracker
    widget → user approves → widget instantiated from schema on the dashboard.
-5. **Review session:** Wisdom tab → Review mode → flashcard-style resurfacing →
-   recall feedback updates the spaced-repetition schedule.
+5. **Review session:** Wisdom tab → swipe the TikTok-style wisdom feed → per-card
+   "still resonates?" and distill actions → feedback updates the spaced-repetition
+   schedule and feed ordering.
+6. **Capture a book:** "I read this" → name book + write what you liked (or snap a
+   page) → OCR/AI splits it into highlight cards under the book → they enter the feed.
 
 ---
 
@@ -353,7 +378,8 @@ notifications_log
 Supabase schema + RLS, auth, FastAPI skeleton, RN app shell with 4 tabs.
 
 **Phase 1 — Capture & Hub MVP (Weeks 3–5)**
-Manual capture + share sheet, enrichment/summary, knowledge hub feed, basic search.
+Manual capture + share sheet, book logging + photo/OCR, enrichment/summary,
+TikTok-style wisdom feed, basic search.
 
 **Phase 2 — Journal & AI Chat (Weeks 6–7)**
 Journaling, end-of-entry AI chat grounded via retrieval, past-entry browsing.
@@ -362,7 +388,7 @@ Journaling, end-of-entry AI chat grounded via retrieval, past-entry browsing.
 Embeddings + semantic search, connections, review mode, wisdom notifications.
 
 **Phase 4 — Integrations (Weeks 10–11)**
-YouTube playlist sync, Kindle import.
+YouTube playlist sync; harden book photo/OCR pipeline.
 
 **Phase 5 — Dynamic Dashboard (Weeks 12–13)**
 Widget catalog, manual tracking, AI-proposed widgets with guardrails, insights.
@@ -373,7 +399,8 @@ Offline cache, onboarding, settings, export/delete, private beta.
 ---
 
 ## 11. Open Questions
-- Kindle: rely on Readwise API, or build our own export-parsing pipeline for v1?
+- Book OCR: on-device text recognition (free, offline) vs. a cloud vision/OCR call
+  (higher accuracy on tricky pages) — or on-device first with cloud fallback?
 - YouTube transcripts: which items lack transcripts, and do we fall back to
   audio-to-text?
 - Spaced-repetition algorithm: SM-2 baseline vs. a lighter "resonance"-based model?
@@ -382,7 +409,7 @@ Offline cache, onboarding, settings, export/delete, private beta.
 - Cost model: per-user monthly LLM/embedding budget and where to cap.
 
 ## 12. Risks
-- **Ingestion fragility** (Kindle/YouTube APIs change) → isolate behind adapters.
+- **Ingestion fragility** (YouTube API changes; OCR accuracy) → isolate behind adapters.
 - **AI cost** at scale → tiered models, caching, batching embeddings.
 - **Privacy trust** → strong defaults, transparency, easy export/delete.
 - **Feature sprawl** → keep v1 scoped to the four pillars.
